@@ -12,4 +12,8 @@ subreddit = r.get_subreddit("wallpapers")
 
 for submission in subreddit.get_top(limit = 5):
   print "Title: ", submission.title
-  print "URL:   ", submission.url
+  print "URL:   ", submission.url, "\n"
+
+CLIENT_ID = #todo
+im = pyimgur.Imgur(CLIENT_ID)
+
