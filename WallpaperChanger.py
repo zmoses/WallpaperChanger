@@ -9,7 +9,7 @@ import requests # Download files via HTTP
 import os
 import glob     # Used to search files already downloaded
 import sys
-from bs4 import BeautifulSoup # An HTML parser
+from   bs4 import BeautifulSoup # An HTML parser
 
 def downloadImage(imageUrl, localName):
   response = requests.get(imageUrl)
@@ -23,7 +23,7 @@ user_agent = "WallpaperChanger 0.1"
 r = praw.Reddit(user_agent = user_agent)
 submissions = r.get_subreddit("wallpapers").get_top(limit = 5)
 
-# Create a regex object to be used for re.search() and re.match()
+# Create a regex object to be used for re.search() later on
 imgurUrlPattern = re.compile(r'(http://i.imgur.com/(.*))(\?.*)?')
 
 for submission in submissions:
@@ -33,6 +33,7 @@ for submission in submissions:
     continue
 
   if 'http://imgur.com/a/' in submission.url:
+    # If the image is part of an album....
     albumId = submission.url[len('http://imgur.com/a/'):]
     htmlSource = requests.get(submission.url).text
 
@@ -49,6 +50,7 @@ for submission in submissions:
       downloadImage('http:' + match['href'], localName)
       
   elif 'http://i.imgur.com/' in submission.url:
+    # If the image is a direct link....
     mo = imgurUrlPattern.search(submission.url)
     imgurFilename = mo.group(2)
     if '?' in imgurFilename:
@@ -57,7 +59,9 @@ for submission in submissions:
     downloadImage(submission.url, localName)
 
   elif 'http://imgur.com/' in submission.url:
+    # If the image is on a page on Imgur as the only image
     htmlSource = requests.get(submission.url).text
+    print(htmlSource)
     soup = BeautifulSoup(htmlSource)
     imageUrl = soup.select('.image a')[0]['href']
     
@@ -68,7 +72,7 @@ for submission in submissions:
     if '?' in imageUrl:
       imageFile = imageUrl[imageUrl.rfind('/') + 1:imageUrl.rfind('?')]
     else:
-      imageFile = imageUrl[imageUrl.rfind('/') + 1]
+      imageFile = imageUrl[imageUrl.rfind('/') + 1:]
 
     localName = 'reddit_%s_album_NA_imgur_%s' % (submission.id, imageFile)
     downloadImage(imageUrl, localName)
