@@ -48,3 +48,27 @@ for submission in submissions:
       localName = 'reddit_%s_album_%s_imgur_%s' % (submission.id, albumId, imageFile)
       downloadImage('http:' + match['href'], localName)
       
+  elif 'http://i.imgur.com/' in submission.url:
+    mo = imgurUrlPattern.search(submission.url)
+    imgurFilename = mo.group(2)
+    if '?' in imgurFilename:
+      imgurFilename = imgurFilename[:imgurFilename.find('?')]
+    localName = 'reddit_%s_album_NA_imgur_%s' % (submission.id, imgurFilename)
+    downloadImage(submission.url, localName)
+
+  elif 'http://imgur.com/' in submission.url:
+    htmlSource = requests.get(submission.url).text
+    soup = BeautifulSoup(htmlSource)
+    imageUrl = soup.select('.image a')[0]['href']
+    
+    if imageUrl.startswith('//'):
+      imageUrl = 'http:' + imageUrl
+    imageId = imageUrl[imageUrl.rfind('/') + 1:imageUrl.rfind('.')]
+
+    if '?' in imageUrl:
+      imageFile = imageUrl[imageUrl.rfind('/') + 1:imageUrl.rfind('?')]
+    else:
+      imageFile = imageUrl[imageUrl.rfind('/') + 1]
+
+    localName = 'reddit_%s_album_NA_imgur_%s' % (submission.id, imageFile)
+    downloadImage(imageUrl, localName)
