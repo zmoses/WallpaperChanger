@@ -1,19 +1,21 @@
 """
+Reddit Image Downloader
 Downloads the top picture on /r/wallpapers and sets
 sets it to your wallpaper.
 """
 
+# ToDo: Maybe make into a class?
+
 import praw     # An API wrapper for Reddit
 import re       # Regular expression support
 import requests # Download files via HTTP
-import os
 import glob     # Used to search files already downloaded
-import sys
+# import sys
 from   bs4 import BeautifulSoup # An HTML parser
 
 def access_reddit(user_agent, subreddit, lim):
     r = praw.Reddit(user_agent = user_agent)
-    submissions = r.get_subreddit(subreddit).get_top(limit = lim)
+    return r.get_subreddit(subreddit).get_top(limit = lim)
 
 def download_image(imageUrl, submission_id, album_id, image_file):
     localName = 'reddit_%s_album_%s_imgur_%s' % (submission_id, album_id, image_file)
@@ -75,6 +77,6 @@ def get_submission(submissions):
         download_image(imageUrl, submission.id, 'NA', imageFile)
 
 if __name__ == '__main__':
-    access_reddit('WallpaperChanger 0.1', 'wallpapers', 5)
+    submissions = access_reddit('WallpaperChanger 0.1', 'wallpapers', 5)
     for submission in submissions:
         get_submission(submission)
