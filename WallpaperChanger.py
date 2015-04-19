@@ -11,6 +11,10 @@ import glob     # Used to search files already downloaded
 import sys
 from   bs4 import BeautifulSoup # An HTML parser
 
+def access_reddit(user_agent, subreddit, lim):
+    r = praw.Reddit(user_agent = user_agent)
+    submissions = r.get_subreddit(subreddit).get_top(limit = lim)
+
 def download_image(imageUrl, submission_id, album_id, image_file):
     localName = 'reddit_%s_album_%s_imgur_%s' % (submission_id, album_id, image_file)
     response = requests.get(imageUrl)
@@ -20,18 +24,15 @@ def download_image(imageUrl, submission_id, album_id, image_file):
             for chunk in response.iter_content(4096):
                 fo.write(chunk)
 
-user_agent = "WallpaperChanger 0.1"
-r = praw.Reddit(user_agent = user_agent)
-submissions = r.get_subreddit("wallpapers").get_top(limit = 5)
-
-# Create a regex object to be used for re.search() later on
-imgurUrlPattern = re.compile(r'(http://i.imgur.com/(.*))(\?.*)?')
-
-for submission in submissions:
+def get_submission(submissions):
+    # Create a regex object to be used for re.search() later on
+    imgurUrlPattern = re.compile(r'(http://i.imgur.com/(.*))(\?.*)?')
     if "imgur.com/" not in submission.url:
-        continue
+        # If the Url is not from Imgur
+        return
     if len(glob.glob('reddit_%s_*' % (submission.id))) > 0:
-        continue
+        # If we've already downloaded this submission
+        return
 
     if 'http://imgur.com/a/' in submission.url:
         # If the image is part of an album....
@@ -60,7 +61,6 @@ for submission in submissions:
     elif 'http://imgur.com/' in submission.url:
         # If the image is on a page on Imgur as the only image
         htmlSource = requests.get(submission.url).text
-        print(htmlSource)
         soup = BeautifulSoup(htmlSource)
         imageUrl = soup.select('.image a')[0]['href']
         
@@ -73,3 +73,8 @@ for submission in submissions:
         else:
             imageFile = imageUrl[imageUrl.rfind('/') + 1:]
         download_image(imageUrl, submission.id, 'NA', imageFile)
+
+if __name__ == '__main__':
+    access_reddit('WallpaperChanger 0.1', 'wallpapers', 5)
+    for submission in submissions:
+        get_submission(submission)
