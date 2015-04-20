@@ -4,17 +4,14 @@ Downloads the top picture on /r/wallpapers and sets
 sets it to your wallpaper.
 """
 
-# ToDo: Maybe make into a class?
-
 import praw     # An API wrapper for Reddit
 import re       # Regular expression support
 import requests # Download files via HTTP
 import glob     # Used to search files already downloaded
-# import sys
 from   bs4 import BeautifulSoup # An HTML parser
 
-def access_reddit(user_agent, subreddit, lim):
-    r = praw.Reddit(user_agent = user_agent)
+def access_reddit(useragent, subreddit, lim):
+    r = praw.Reddit(user_agent = useragent)
     return r.get_subreddit(subreddit).get_top(limit = lim)
 
 def download_image(imageUrl, submission_id, album_id, image_file):
@@ -25,8 +22,9 @@ def download_image(imageUrl, submission_id, album_id, image_file):
         with open(localName, 'wb') as fo:
             for chunk in response.iter_content(4096):
                 fo.write(chunk)
+    return localName
 
-def get_submission(submissions):
+def get_submission(submission):
     # Create a regex object to be used for re.search() later on
     imgurUrlPattern = re.compile(r'(http://i.imgur.com/(.*))(\?.*)?')
     if "imgur.com/" not in submission.url:
@@ -44,21 +42,23 @@ def get_submission(submissions):
         soup = BeautifulSoup(htmlSource)
         matches = soup.select('.album-view-image-link a')
 
+        files = []
         for match in matches:
             imageUrl = match['href']
             if '?' in imageUrl:
                 imageFile = imageUrl[imageUrl.rfind('/') + 1:imageUrl.rfind('?')]
             else:
                 imageFile = imageUrl[imageUrl.rfind('/') + 1:]
-            download_image('http:' + match['href'], submission.id, albumId, imageFile)
-      
+            files = files.append(download_image('http:' + match['href'], submission.id, albumId, imageFile))
+        return files
+
     elif 'http://i.imgur.com/' in submission.url:
         # If the image is a direct link....
         mo = imgurUrlPattern.search(submission.url)
         imgurFilename = mo.group(2)
         if '?' in imgurFilename:
             imgurFilename = imgurFilename[:imgurFilename.find('?')]
-        download_image(submission.url, submission.id, 'NA', imgurFilename)
+        return download_image(submission.url, submission.id, 'NA', imgurFilename)
 
     elif 'http://imgur.com/' in submission.url:
         # If the image is on a page on Imgur as the only image
@@ -74,7 +74,7 @@ def get_submission(submissions):
             imageFile = imageUrl[imageUrl.rfind('/') + 1:imageUrl.rfind('?')]
         else:
             imageFile = imageUrl[imageUrl.rfind('/') + 1:]
-        download_image(imageUrl, submission.id, 'NA', imageFile)
+        return download_image(imageUrl, submission.id, 'NA', imageFile)
 
 if __name__ == '__main__':
     submissions = access_reddit('WallpaperChanger 0.1', 'wallpapers', 5)
