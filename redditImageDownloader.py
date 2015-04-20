@@ -1,7 +1,6 @@
 """
 Reddit Image Downloader
-Downloads the top picture on /r/wallpapers and sets
-sets it to your wallpaper.
+Downloads the top picture(s) on a subreddit
 """
 
 import praw     # An API wrapper for Reddit
