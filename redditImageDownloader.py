@@ -75,8 +75,3 @@ def get_submission(submission):
         else:
             imageFile = imageUrl[imageUrl.rfind('/') + 1:]
         return download_image(imageUrl, submission.id, 'NA', imageFile)
-
-if __name__ == '__main__':
-    submissions = access_reddit('WallpaperChanger 0.1', 'wallpapers', 5)
-    for submission in submissions:
-        get_submission(submission)
