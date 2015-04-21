@@ -33,10 +33,10 @@ class ImageDownloader(object):
     def get_submission(submission):
         if 'http://imgur.com/a/' in submission.url:
             # If the image is part of an album....
-            albumId = submission.url[len('http://imgur.com/a/'):]
-            htmlSource = requests.get(submission.url).text
+            album_id = submission.url[len('http://imgur.com/a/'):]
+            html_source = requests.get(submission.url).text
 
-            soup = BeautifulSoup(htmlSource)
+            soup = BeautifulSoup(html_source)
             matches = soup.select('.album-view-image-link a')
 
             files = []
@@ -46,14 +46,14 @@ class ImageDownloader(object):
                     image_file = image_url[image_url.rfind('/') + 1:image_url.rfind('?')]
                 else:
                     image_file = image_url[image_url.rfind('/') + 1:]
-                files = files.append(download_image('http:' + match['href'], submission.id, albumId, image_file))
+                files = files.append(download_image('http:' + match['href'], submission.id, album_id, image_file))
             return files
 
         elif 'http://i.imgur.com/' in submission.url:
             # Create a regex object to be used for .search()
-            imgurUrlPattern = re.compile(r'(http://i.imgur.com/(.*))(\?.*)?')
+            imgur_url_pattern = re.compile(r'(http://i.imgur.com/(.*))(\?.*)?')
             # If the image is a direct link....
-            mo = imgurUrlPattern.search(submission.url)
+            mo = imgur_url_pattern.search(submission.url)
             imgurFilename = mo.group(2)
             if '?' in imgurFilename:
                 imgurFilename = imgurFilename[:imgurFilename.find('?')]
@@ -61,8 +61,8 @@ class ImageDownloader(object):
 
         elif 'http://imgur.com/' in submission.url:
             # If the image is on a page on Imgur as the only image
-            htmlSource = requests.get(submission.url).text
-            soup = BeautifulSoup(htmlSource)
+            html_source = requests.get(submission.url).text
+            soup = BeautifulSoup(html_source)
             image_url = soup.select('.image a')[0]['href']
             
             if image_url.startswith('//'):
