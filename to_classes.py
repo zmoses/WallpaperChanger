@@ -7,9 +7,17 @@ from   gi.repository import Gio           # Edit settings for Gnome 3+
 from   bs4           import BeautifulSoup # An HTML parser
 
 class ImageDownloader(object):
-    def access_reddit(useragent, subreddit, lim):
-        r = praw.Reddit(user_agent = useragent)
-        return r.get_subreddit(subreddit).get_top(limit = lim)
+    def __init__(self, useragent, subreddit):
+        self.reddit_connection = praw.Reddit(user_agent = useragent)
+        self.subreddit = subreddit
+        self.submissions = r.get_subreddit(subreddit)
+        self.downloaded_images = []
+
+    def top(lim):
+        return self.submissions.get_top(limit = lim)
+
+    def hot(lim):
+        return self.submissions.get_hot(limit = lim)
 
     def download_image(image_url, submission_id, album_id, image_file):
         local_name = 'reddit_%s_album_%s_imgur_%s' % (submission_id, album_id, image_file)
@@ -39,15 +47,13 @@ class ImageDownloader(object):
             soup = BeautifulSoup(html_source)
             matches = soup.select('.album-view-image-link a')
 
-            files = []
             for match in matches:
                 image_url = match['href']
                 if '?' in image_url:
                     image_file = image_url[image_url.rfind('/') + 1:image_url.rfind('?')]
                 else:
                     image_file = image_url[image_url.rfind('/') + 1:]
-                files = files.append(download_image('http:' + match['href'], submission.id, album_id, image_file))
-            return files
+                downloaded_images = downloaded_images.append(download_image('http:' + match['href'], submission.id, album_id, image_file))
 
         elif 'http://i.imgur.com/' in submission.url:
             # Create a regex object to be used for .search()
