@@ -13,19 +13,19 @@ def access_reddit(useragent, subreddit, lim):
     r = praw.Reddit(user_agent = useragent)
     return r.get_subreddit(subreddit).get_top(limit = lim)
 
-def download_image(imageUrl, submission_id, album_id, image_file):
-    localName = 'reddit_%s_album_%s_imgur_%s' % (submission_id, album_id, image_file)
-    response = requests.get(imageUrl)
+def download_image(image_url, submission_id, album_id, image_file):
+    local_name = 'reddit_%s_album_%s_imgur_%s' % (submission_id, album_id, image_file)
+    response = requests.get(image_url)
     if response.status_code == 200:
-        print('Downloading %s....' % (localName))
-        with open(localName, 'wb') as fo:
+        print('Downloading %s....' % (local_name))
+        with open(local_name, 'wb') as fo:
             for chunk in response.iter_content(4096):
                 fo.write(chunk)
-    return localName
+    return local_name
 
 def get_submission(submission):
     # Create a regex object to be used for re.search() later on
-    imgurUrlPattern = re.compile(r'(http://i.imgur.com/(.*))(\?.*)?')
+    imgur_url_pattern = re.compile(r'(http://i.imgur.com/(.*))(\?.*)?')
     if "imgur.com/" not in submission.url:
         # If the Url is not from Imgur
         return
@@ -36,41 +36,41 @@ def get_submission(submission):
     if 'http://imgur.com/a/' in submission.url:
         # If the image is part of an album....
         albumId = submission.url[len('http://imgur.com/a/'):]
-        htmlSource = requests.get(submission.url).text
+        html_source = requests.get(submission.url).text
 
-        soup = BeautifulSoup(htmlSource)
+        soup = BeautifulSoup(html_source)
         matches = soup.select('.album-view-image-link a')
 
         files = []
         for match in matches:
-            imageUrl = match['href']
-            if '?' in imageUrl:
-                imageFile = imageUrl[imageUrl.rfind('/') + 1:imageUrl.rfind('?')]
+            image_url = match['href']
+            if '?' in image_url:
+                imageFile = image_url[image_url.rfind('/') + 1:image_url.rfind('?')]
             else:
-                imageFile = imageUrl[imageUrl.rfind('/') + 1:]
+                imageFile = image_url[image_url.rfind('/') + 1:]
             files = files.append(download_image('http:' + match['href'], submission.id, albumId, imageFile))
         return files
 
     elif 'http://i.imgur.com/' in submission.url:
         # If the image is a direct link....
-        mo = imgurUrlPattern.search(submission.url)
-        imgurFilename = mo.group(2)
-        if '?' in imgurFilename:
-            imgurFilename = imgurFilename[:imgurFilename.find('?')]
-        return download_image(submission.url, submission.id, 'NA', imgurFilename)
+        mo = imgur_url_pattern.search(submission.url)
+        imgur_filename = mo.group(2)
+        if '?' in imgur_filename:
+            imgur_filename = imgur_filename[:imgur_filename.find('?')]
+        return download_image(submission.url, submission.id, 'NA', imgur_filename)
 
     elif 'http://imgur.com/' in submission.url:
         # If the image is on a page on Imgur as the only image
-        htmlSource = requests.get(submission.url).text
-        soup = BeautifulSoup(htmlSource)
-        imageUrl = soup.select('.image a')[0]['href']
+        html_source = requests.get(submission.url).text
+        soup = BeautifulSoup(html_source)
+        image_url = soup.select('.image a')[0]['href']
         
-        if imageUrl.startswith('//'):
-            imageUrl = 'http:' + imageUrl
-        imageId = imageUrl[imageUrl.rfind('/') + 1:imageUrl.rfind('.')]
+        if image_url.startswith('//'):
+            image_url = 'http:' + image_url
+        imageId = image_url[image_url.rfind('/') + 1:image_url.rfind('.')]
 
-        if '?' in imageUrl:
-            imageFile = imageUrl[imageUrl.rfind('/') + 1:imageUrl.rfind('?')]
+        if '?' in image_url:
+            imageFile = image_url[image_url.rfind('/') + 1:image_url.rfind('?')]
         else:
-            imageFile = imageUrl[imageUrl.rfind('/') + 1:]
-        return download_image(imageUrl, submission.id, 'NA', imageFile)
+            imageFile = image_url[image_url.rfind('/') + 1:]
+        return download_image(image_url, submission.id, 'NA', imageFile)
