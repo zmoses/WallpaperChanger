@@ -39,6 +39,7 @@ class ImageDownloader(object):
         return True
 
     def get_id(self, url):
+        # Gets id from Imgur + the file extension (.jpg, .png, etc.)
         if '?' in url:
             image_file = url[url.rfind('/') + 1:url.rfind('?')]
         else:
@@ -46,21 +47,26 @@ class ImageDownloader(object):
         return image_file
 
     def get_album_submission(self, submission):
-        # If the image is part of an album....
+        # Method is called if the image is part of an album
         album_id = submission.url[len('http://imgur.com/a/'):]
         html_source = requests.get(submission.url).text
         soup = BeautifulSoup(html_source)
         matches = soup.select('.album-view-image-link a')
 
         for match in matches:
-            image_file = self.get_id(url)
-            self.downloaded_images = self.downloaded_images + [self.download_image('http:' + match['href'], submission.id, album_id, image_file)]
+            image_url = match['href']
+            image_file = self.get_id(image_url)
+            self.downloaded_images = self.downloaded_images + [self.download_image('http:' + image_url, submission.id, album_id, image_file)]
 
     def get_single_submission(self, submission):
-        # If the image is on a page on Imgur as the only image
+        # Method is called if the image is on a page on Imgur as the only image
+        # If the url includes the file extension (which links to the image url)
+        if '.' in submission.url[submission.url.rfind('/') + 1:]:
+            self.get_single_image(submission)
+            return
+
         html_source = requests.get(submission.url).text
         soup = BeautifulSoup(html_source)
-        print(submission.url)
         image_url = soup.select('.image a')[0]['href']
         
         if image_url.startswith('//'):
@@ -71,6 +77,7 @@ class ImageDownloader(object):
         self.downloaded_images =  self.downloaded_images + [self.download_image(image_url, submission.id, 'NA', image_file)]
 
     def get_single_image(self, submission):
+        # Method is called if the url is a direct url to the image
         imgur_filename = self.get_id(submission.url)
         self.downloaded_images = self.downloaded_images + [self.download_image(submission.url, submission.id, 'NA', imgur_filename)]
 
@@ -95,7 +102,8 @@ if __name__ == '__main__':
     submissions = thing.top(20)
 
     for submission in submissions:
-        thing.analyze_submission(submission)
+        if thing.should_download(submission):
+            thing.analyze_submission(submission)
 
     # if str(image_name) != 'None':
     #     file_location = os.getcwd() + '/' + str(image_name)
