@@ -27,7 +27,7 @@ class ImageDownloader(object):
             with open(local_name, 'wb') as fo:
                 for chunk in response.iter_content(4096):
                     fo.write(chunk)
-        return local_name
+        self.downloaded_images = self.downloaded_images + [local_name]
 
     def should_download(self, submission):
         if "imgur.com/" not in submission.url:
@@ -56,7 +56,7 @@ class ImageDownloader(object):
         for match in matches:
             image_url = match['href']
             image_file = self.get_id(image_url)
-            self.downloaded_images = self.downloaded_images + [self.download_image('http:' + image_url, submission.id, album_id, image_file)]
+            self.download_image('http:' + image_url, submission.id, album_id, image_file)
 
     def get_single_submission(self, submission):
         # Method is called if the image is on a page on Imgur as the only image
@@ -74,12 +74,12 @@ class ImageDownloader(object):
         imageId = image_url[image_url.rfind('/') + 1:image_url.rfind('.')]
 
         image_file = self.get_id(image_url)
-        self.downloaded_images =  self.downloaded_images + [self.download_image(image_url, submission.id, 'NA', image_file)]
+        self.download_image(image_url, submission.id, 'NA', image_file)
 
     def get_single_image(self, submission):
         # Method is called if the url is a direct url to the image
         imgur_filename = self.get_id(submission.url)
-        self.downloaded_images = self.downloaded_images + [self.download_image(submission.url, submission.id, 'NA', imgur_filename)]
+        self.download_image(submission.url, submission.id, 'NA', imgur_filename)
 
     def analyze_submission(self, submission):
         if 'http://i.imgur.com/' in submission.url:
@@ -91,20 +91,21 @@ class ImageDownloader(object):
         elif 'http://imgur.com' in submission.url:
             self.get_single_submission(submission)
 
-# class WallpaperChanger(object):
-#     def gnome3_changer(file_path):
-#         gsettings = Gio.Settings.new('org.gnome.desktop.background')
-#         gsettings.set_string('picture-uri', 'file://' + file_path)
-#         gsettings.apply()
+class WallpaperChanger(object):
+    def gnome3_changer(self, file_path):
+        gsettings = Gio.Settings.new('org.gnome.desktop.background')
+        gsettings.set_string('picture-uri', 'file://' + file_path)
+        gsettings.apply()
 
 if __name__ == '__main__':
     thing = ImageDownloader('WallpaperChanger 0.1', 'wallpapers')
-    submissions = thing.top(20)
+    submissions = thing.top(1)
 
     for submission in submissions:
         if thing.should_download(submission):
             thing.analyze_submission(submission)
 
-    # if str(image_name) != 'None':
-    #     file_location = os.getcwd() + '/' + str(image_name)
-    #     gnome3_changer(file_location)
+    if str(thing.downloaded_images) != []:
+        file_location = os.getcwd() + '/' + str(thing.downloaded_images[0])
+        wallpaper = WallpaperChanger()
+        wallpaper.gnome3_changer(file_location)
