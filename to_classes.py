@@ -60,10 +60,10 @@ class ImageDownloader(object):
             imgur_url_pattern = re.compile(r'(http://i.imgur.com/(.*))(\?.*)?')
             # If the image is a direct link....
             mo = imgur_url_pattern.search(submission.url)
-            imgurFilename = mo.group(2)
-            if '?' in imgurFilename:
-                imgurFilename = imgurFilename[:imgurFilename.find('?')]
-            return download_image(submission.url, submission.id, 'NA', imgurFilename)
+            imgur_filename = mo.group(2)
+            if '?' in imgur_filename:
+                imgur_filename = imgur_filename[:imgur_filename.find('?')]
+            return download_image(submission.url, submission.id, 'NA', imgur_filename)
 
         elif 'http://imgur.com/' in submission.url:
             # If the image is on a page on Imgur as the only image
