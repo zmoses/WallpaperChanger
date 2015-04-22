@@ -10,16 +10,16 @@ class ImageDownloader(object):
     def __init__(self, useragent, subreddit):
         self.reddit_connection = praw.Reddit(user_agent = useragent)
         self.subreddit = subreddit
-        self.submissions = r.get_subreddit(subreddit)
+        self.submissions = self.reddit_connection.get_subreddit(subreddit)
         self.downloaded_images = []
 
-    def top(lim):
+    def top(self, lim):
         return self.submissions.get_top(limit = lim)
 
-    def hot(lim):
+    def hot(self, lim):
         return self.submissions.get_hot(limit = lim)
 
-    def download_image(image_url, submission_id, album_id, image_file):
+    def download_image(self, image_url, submission_id, album_id, image_file):
         local_name = 'reddit_%s_album_%s_imgur_%s' % (submission_id, album_id, image_file)
         response = requests.get(image_url)
         if response.status_code == 200:
@@ -29,7 +29,7 @@ class ImageDownloader(object):
                     fo.write(chunk)
         return local_name
 
-    def should_download(submission):
+    def should_download(self, submission):
         if "imgur.com/" not in submission.url:
             # If the Url is not from Imgur
             return False
@@ -38,62 +38,65 @@ class ImageDownloader(object):
             return False
         return True
 
-    def get_submission(submission):
-        if 'http://imgur.com/a/' in submission.url:
-            # If the image is part of an album....
-            album_id = submission.url[len('http://imgur.com/a/'):]
-            html_source = requests.get(submission.url).text
+    def get_id(self, url):
+        if '?' in url:
+            image_file = url[url.rfind('/') + 1:url.rfind('?')]
+        else:
+            image_file = url[url.rfind('/') + 1:]
+        return image_file
 
-            soup = BeautifulSoup(html_source)
-            matches = soup.select('.album-view-image-link a')
+    def get_album_submission(self, submission):
+        # If the image is part of an album....
+        album_id = submission.url[len('http://imgur.com/a/'):]
+        html_source = requests.get(submission.url).text
+        soup = BeautifulSoup(html_source)
+        matches = soup.select('.album-view-image-link a')
 
-            for match in matches:
-                image_url = match['href']
-                if '?' in image_url:
-                    image_file = image_url[image_url.rfind('/') + 1:image_url.rfind('?')]
-                else:
-                    image_file = image_url[image_url.rfind('/') + 1:]
-                downloaded_images = downloaded_images.append(download_image('http:' + match['href'], submission.id, album_id, image_file))
+        for match in matches:
+            image_file = self.get_id(url)
+            self.downloaded_images = self.downloaded_images + [self.download_image('http:' + match['href'], submission.id, album_id, image_file)]
 
-        elif 'http://i.imgur.com/' in submission.url:
-            # Create a regex object to be used for .search()
-            imgur_url_pattern = re.compile(r'(http://i.imgur.com/(.*))(\?.*)?')
-            # If the image is a direct link....
-            mo = imgur_url_pattern.search(submission.url)
-            imgur_filename = mo.group(2)
-            if '?' in imgur_filename:
-                imgur_filename = imgur_filename[:imgur_filename.find('?')]
-            return download_image(submission.url, submission.id, 'NA', imgur_filename)
+    def get_single_submission(self, submission):
+        # If the image is on a page on Imgur as the only image
+        html_source = requests.get(submission.url).text
+        soup = BeautifulSoup(html_source)
+        print(submission.url)
+        image_url = soup.select('.image a')[0]['href']
+        
+        if image_url.startswith('//'):
+            image_url = 'http:' + image_url
+        imageId = image_url[image_url.rfind('/') + 1:image_url.rfind('.')]
 
-        elif 'http://imgur.com/' in submission.url:
-            # If the image is on a page on Imgur as the only image
-            html_source = requests.get(submission.url).text
-            soup = BeautifulSoup(html_source)
-            image_url = soup.select('.image a')[0]['href']
-            
-            if image_url.startswith('//'):
-                image_url = 'http:' + image_url
-            imageId = image_url[image_url.rfind('/') + 1:image_url.rfind('.')]
+        image_file = self.get_id(image_url)
+        self.downloaded_images =  self.downloaded_images + [self.download_image(image_url, submission.id, 'NA', image_file)]
 
-            if '?' in image_url:
-                image_file = image_url[image_url.rfind('/') + 1:image_url.rfind('?')]
-            else:
-                image_file = image_url[image_url.rfind('/') + 1:]
-            return download_image(image_url, submission.id, 'NA', image_file)
+    def get_single_image(self, submission):
+        imgur_filename = self.get_id(submission.url)
+        self.downloaded_images = self.downloaded_images + [self.download_image(submission.url, submission.id, 'NA', imgur_filename)]
 
-class WallpaperChanger(object):
-    def gnome3_changer(file_path):
-        gsettings = Gio.Settings.new('org.gnome.desktop.background')
-        gsettings.set_string('picture-uri', 'file://' + file_path)
-        gsettings.apply()
+    def analyze_submission(self, submission):
+        if 'http://i.imgur.com/' in submission.url:
+            self.get_single_image(submission)
 
+        elif 'http://imgur.com/a/' in submission.url:
+            self.get_album_submission(submission)
 
+        elif 'http://imgur.com' in submission.url:
+            self.get_single_submission(submission)
+
+# class WallpaperChanger(object):
+#     def gnome3_changer(file_path):
+#         gsettings = Gio.Settings.new('org.gnome.desktop.background')
+#         gsettings.set_string('picture-uri', 'file://' + file_path)
+#         gsettings.apply()
 
 if __name__ == '__main__':
-    submissions = access_reddit('WallpaperChanger 0.1', 'wallpapers', 1)
-    for submission in submissions:
-        image_name = get_submission(submission)
+    thing = ImageDownloader('WallpaperChanger 0.1', 'wallpapers')
+    submissions = thing.top(20)
 
-    if str(image_name) != 'None':
-        file_location = os.getcwd() + '/' + str(image_name)
-        gnome3_changer(file_location)
+    for submission in submissions:
+        thing.analyze_submission(submission)
+
+    # if str(image_name) != 'None':
+    #     file_location = os.getcwd() + '/' + str(image_name)
+    #     gnome3_changer(file_location)
