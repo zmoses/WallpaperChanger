@@ -1,8 +1,23 @@
+"""
+Downloads an image from reddit and sets it as your wallpaper
+Currently supported OSs:
+    Linux running Gnome 3
+
+ToDo
+    Fix unclosed socket
+    Download and set single image out of an album
+    Clean up names in main (thing? sutff? You lazy ass.)
+    Add more OSs
+"""
+
+
+
+
 import praw     # An API wrapper for Reddit
 import re       # Regular expression support
 import requests # Download files via HTTP
 import glob     # Used to search files already downloaded
-import os       # Used for editing file locations
+from   os            import path          # Used for getting file locations
 from   gi.repository import Gio           # Edit settings for Gnome 3+
 from   bs4           import BeautifulSoup # An HTML parser
 
@@ -99,13 +114,25 @@ class WallpaperChanger(object):
 
 if __name__ == '__main__':
     thing = ImageDownloader('WallpaperChanger 0.1', 'wallpapers')
-    submissions = thing.top(1)
+    submissions = thing.top(25)
+    selection = 1
+    options = {}
 
     for submission in submissions:
         if thing.should_download(submission):
-            thing.analyze_submission(submission)
+            options[selection] = submission
+            print(str(selection) + ': ' + submission.title)
+            selection += 1
+        if selection == 6:
+            break
 
-    if str(thing.downloaded_images) != []:
-        file_location = os.getcwd() + '/' + str(thing.downloaded_images[0])
-        wallpaper = WallpaperChanger()
-        wallpaper.gnome3_changer(file_location)
+    print('6: Keep current')
+    stuff = int(input('Select an option: '))
+
+    if stuff in range(1,6):
+        thing.analyze_submission(options[stuff])
+
+        if str(thing.downloaded_images) != []:
+            file_location = path.realpath(thing.downloaded_images[0])
+            wallpaper = WallpaperChanger()
+            wallpaper.gnome3_changer(file_location)
