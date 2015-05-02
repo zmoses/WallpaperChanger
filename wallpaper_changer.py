@@ -12,10 +12,10 @@ import praw     # An API wrapper for Reddit
 import re       # Regular expression support
 import requests # Download files via HTTP
 import glob     # Used to search files already downloaded
+import warnings # Used to silence the unclosed socket warning
 from   os            import path          # Used for getting file locations
 from   gi.repository import Gio           # Edit settings for Gnome 3+
 from   bs4           import BeautifulSoup # An HTML parser
-from   urllib3       import HTTPConnectionPool
 
 class ImageDownloader(object):
     def __init__(self, useragent, subreddit):
@@ -133,4 +133,11 @@ if __name__ == '__main__':
             wallpaper = WallpaperChanger()
             wallpaper.gnome3_changer(file_location)
 
-    reddit_session.close()
+    # Because the requests module opens a connection pool and doesn't close it,
+    # it throws an unclosed socket warning. This silences the warning, but 
+    # doesn't actually fix the issue. Look for a workaround....
+    # These are the comments on the issue from the requests module developers:
+    # https://github.com/kennethreitz/requests/issues/1882#issuecomment-42268849
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        warnings.warn("deprecated", DeprecationWarning)
